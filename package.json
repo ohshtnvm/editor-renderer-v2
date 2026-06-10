@@ -1,10 +1,11 @@
 {
-  "name": "coach-site-cms",
-  "version": "1.0.0",
+  "name": "editor-renderer-v2",
+  "version": "2.0.0",
   "private": true,
-  "description": "TSV-driven coaching site: hardened renderer + visual editor sharing one core.js. No framework, no dependencies.",
+  "description": "TSV-driven coaching site (v2): renderer + visual editor sharing one core.js, plus folder-driven Case Studies / Shop / Downloads. No framework, no dependencies.",
   "scripts": {
     "serve": "node scripts/serve.js",
+    "manifest": "node scripts/build-manifest.js",
     "build": "node build.js",
     "test": "node test/roundtrip.js && node test/compat.js"
   },

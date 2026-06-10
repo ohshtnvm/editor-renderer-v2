@@ -61,6 +61,7 @@ body.previewing .edit-only{display:none}
 <div class="cms-toolbar">
   <button id="tg-mode" class="primary" title="Toggle preview"><i class="ti ti-eye"></i><span id="tg-label">Exit Edit Mode</span></button>
   <button id="tg-seo" class="edit-only" title="Edit SEO & structured data"><i class="ti ti-search"></i> SEO</button>
+  <button id="tg-content" class="edit-only" title="Manage Case Studies / Shop / Downloads"><i class="ti ti-folders"></i> Content</button>
   <button id="tg-snap" class="edit-only" title="Snapshots"><i class="ti ti-history"></i> Snapshots</button>
   <button id="tg-copy" title="Copy TSV to clipboard"><i class="ti ti-copy"></i> Copy TSV</button>
   <button id="tg-dl" title="Download .tsv"><i class="ti ti-download"></i></button>
@@ -87,9 +88,11 @@ const TSV_URL = "coach-data.tsv";
 const AUTOSAVE_KEY = "coach-cms:autosave";
 const SNAP_KEY = "coach-cms:snapshots";
 
+const MANIFEST_URL = "content-manifest.json";
 const mount = document.getElementById('site');
 let state = null;
 let editMode = true;
+let CONTENT = null; // the content-manifest.json (Case Studies / Shop / Downloads)
 
 /* ---------- boot ---------- */
 (async function boot() {
@@ -100,6 +103,7 @@ let editMode = true;
     const auto = localStorage.getItem(AUTOSAVE_KEY);
     if (auto && auto.indexOf('#config') !== -1) { text = auto; toast('Loaded your last autosave'); }
   }
+  await loadManifest();
   if (text && text.indexOf('#config') !== -1) {
     state = Core.ensureSchema(Core.parseTSV(text));
     draw();
@@ -109,8 +113,13 @@ let editMode = true;
   }
 })();
 
+async function loadManifest() {
+  try { const r = await fetch(MANIFEST_URL, { cache: 'no-store' }); if (r.ok) CONTENT = await r.json(); } catch (e) { /* none */ }
+}
+
 /* ---------- draw ---------- */
 function draw() {
+  if (state && CONTENT) state.content = CONTENT; // keep content sections across TSV reloads
   document.body.classList.toggle('previewing', !editMode);
   document.getElementById('tg-label').textContent = editMode ? 'Exit Edit Mode' : 'Edit';
   document.getElementById('tg-mode').querySelector('i').className = editMode ? 'ti ti-eye' : 'ti ti-pencil';
@@ -122,7 +131,8 @@ function draw() {
       onEditHtml: onEditHtml,
       onEditIcon: onEditIcon,
       onEditNav: onEditNav,
-      onEditSocials: onEditSocials
+      onEditSocials: onEditSocials,
+      onEditContent: onEditContent
     });
   } else {
     Core.render(state, mount, { editable: false });
@@ -302,6 +312,160 @@ function onEditSocials(done) {
 }
 
 /* ===========================================================================
+ * CONTENT MANAGER  (Case Studies / Shop / Downloads — folder-driven items)
+ * The editor can't write files on static hosting, so it generates the item.tsv
+ * for copy/download and documents the folder steps (mirrors Copy-TSV flow).
+ * ========================================================================= */
+const CONTENT_LABELS = { cases: 'Case Studies', shop: 'Shop', downloads: 'Downloads' };
+const CONTENT_REQUIRED = {
+  shop: ['title', 'price', 'description_md'],
+  cases: ['title', 'challenge_md', 'approach_md', 'results_md'],
+  downloads: ['title', 'description_md', 'file']
+};
+const CONTENT_SCHEMA = {
+  shop: [
+    { k: 'title', label: 'Title', t: 'text' }, { k: 'slug', label: 'Slug (folder name)', t: 'text' },
+    { k: 'price', label: 'Price', t: 'number' }, { k: 'currency', label: 'Currency', t: 'text', ph: 'PHP' },
+    { k: 'sale_price', label: 'Sale price (optional)', t: 'number' }, { k: 'description_md', label: 'Description', t: 'md' },
+    { k: 'category', label: 'Category', t: 'text' }, { k: 'tags', label: 'Tags (comma-separated)', t: 'text' },
+    { k: 'sku', label: 'SKU', t: 'text' }, { k: 'availability', label: 'Availability', t: 'select', opts: ['in_stock', 'sold_out', 'preorder'] },
+    { k: 'cta_label', label: 'CTA label', t: 'text', ph: 'Buy Now' }, { k: 'cta_url', label: 'CTA URL (payment link)', t: 'text' },
+    { k: 'featured', label: 'Featured', t: 'bool' }, { k: 'sort_order', label: 'Sort order', t: 'number' },
+    { k: 'cover', label: 'Cover image (URL or filename)', t: 'text' }, { k: 'images', label: 'Gallery (a|b|c)', t: 'text' }
+  ],
+  cases: [
+    { k: 'title', label: 'Title', t: 'text' }, { k: 'slug', label: 'Slug (folder name)', t: 'text' },
+    { k: 'client', label: 'Client', t: 'text' }, { k: 'industry', label: 'Industry', t: 'text' },
+    { k: 'services', label: 'Services (comma-separated)', t: 'text' }, { k: 'date', label: 'Date (YYYY-MM)', t: 'text' },
+    { k: 'duration', label: 'Duration', t: 'text' }, { k: 'challenge_md', label: 'Challenge', t: 'md' },
+    { k: 'approach_md', label: 'Approach', t: 'md' }, { k: 'results_md', label: 'Results', t: 'md' },
+    { k: 'metrics', label: 'Metrics (value|label;value|label)', t: 'text' }, { k: 'testimonial_md', label: 'Testimonial', t: 'md' },
+    { k: 'testimonial_author', label: 'Testimonial author', t: 'text' }, { k: 'tags', label: 'Tags (comma-separated)', t: 'text' },
+    { k: 'external_url', label: 'External URL', t: 'text' }, { k: 'featured', label: 'Featured', t: 'bool' },
+    { k: 'sort_order', label: 'Sort order', t: 'number' }, { k: 'cover', label: 'Cover image (URL or filename)', t: 'text' },
+    { k: 'images', label: 'Gallery (a|b|c)', t: 'text' }
+  ],
+  downloads: [
+    { k: 'title', label: 'Title', t: 'text' }, { k: 'slug', label: 'Slug (folder name)', t: 'text' },
+    { k: 'description_md', label: 'Description', t: 'md' }, { k: 'file', label: 'File (filename in folder, e.g. guide.pdf)', t: 'text' },
+    { k: 'file_type', label: 'File type (auto if blank)', t: 'text' }, { k: 'file_size', label: 'File size (auto if blank)', t: 'text' },
+    { k: 'gated', label: 'Gated (require email)', t: 'bool' }, { k: 'email_list_tag', label: 'Email list tag (when gated)', t: 'text' },
+    { k: 'cta_label', label: 'CTA label', t: 'text', ph: 'Download Free' }, { k: 'category', label: 'Category', t: 'text' },
+    { k: 'tags', label: 'Tags (comma-separated)', t: 'text' }, { k: 'published_date', label: 'Published date (YYYY-MM-DD)', t: 'text' },
+    { k: 'featured', label: 'Featured', t: 'bool' }, { k: 'sort_order', label: 'Sort order', t: 'number' },
+    { k: 'cover', label: 'Cover image (URL or filename)', t: 'text' }, { k: 'images', label: 'Gallery (a|b|c)', t: 'text' }
+  ]
+};
+
+function slugify(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+function parseItemTSV(text) {
+  const o = {};
+  for (const raw of String(text).split(/\r?\n/)) {
+    if (raw.trim() === '' || raw[0] === '#') continue;
+    const tab = raw.indexOf('\t'); if (tab === -1) continue;
+    o[raw.slice(0, tab).trim()] = raw.slice(tab + 1).replace(/\\n/g, '\n');
+  }
+  return o;
+}
+
+// Toolbar "Content" button -> manager listing every section + items.
+function openContent() {
+  const sections = Object.keys(CONTENT_LABELS).map((key) => {
+    const items = (CONTENT && Array.isArray(CONTENT[key])) ? CONTENT[key] : [];
+    const rows = items.length ? items.map((it) =>
+      '<div class="snap"><div class="meta">' + Core.esc(it.title || it.slug) + '<small>' + key + '/' + Core.esc(it.slug) + '</small></div>' +
+      '<button class="btn" data-edit-content="' + key + '|' + Core.esc(it.slug) + '">Edit</button></div>').join('')
+      : '<div class="hint">No items yet.</div>';
+    return '<div class="grp"><h4>' + CONTENT_LABELS[key] + '</h4>' + rows +
+      '<button class="btn" data-add-content="' + key + '"><i class="ti ti-plus"></i> Add ' + CONTENT_LABELS[key].replace(/s$/, '') + '</button></div>';
+  }).join('');
+  openModal({
+    title: 'Content sections', wide: true, noSave: true,
+    body: sections + '<div class="hint">Items live in <code>public/{section}/{slug}/</code>. The editor generates each item’s <code>item.tsv</code> to download; create/replace the file, then run <code>npm run manifest</code> and redeploy.</div>'
+  });
+  document.querySelectorAll('[data-edit-content]').forEach((b) => b.onclick = () => { const p = b.getAttribute('data-edit-content').split('|'); onEditContent(p[0], p[1]); });
+  document.querySelectorAll('[data-add-content]').forEach((b) => b.onclick = () => openContentForm(b.getAttribute('data-add-content'), {}, null));
+}
+
+// Called from a content card's edit affordance, or from the manager.
+async function onEditContent(section, slug) {
+  let values = {};
+  try { const r = await fetch('/' + section + '/' + slug + '/item.tsv', { cache: 'no-store' }); if (r.ok) values = parseItemTSV(await r.text()); } catch (e) {}
+  openContentForm(section, values, slug);
+}
+
+function openContentForm(section, values, slug) {
+  const schema = CONTENT_SCHEMA[section];
+  const fields = schema.map((fld_) => {
+    const v = values[fld_.k] != null ? values[fld_.k] : '';
+    const id = 'cf-' + fld_.k;
+    if (fld_.t === 'md') {
+      return '<label class="fld"><span>' + fld_.label + (CONTENT_REQUIRED[section].indexOf(fld_.k) >= 0 ? ' *' : '') + '</span>' +
+        '<textarea id="' + id + '" data-cf="' + fld_.k + '" data-md="1">' + Core.esc(v) + '</textarea></label>' +
+        '<div class="grp"><h4>preview</h4><div class="cms-html" id="cf-prev-' + fld_.k + '">' + Core.mdToHtml(v) + '</div></div>';
+    }
+    if (fld_.t === 'bool') {
+      return '<label class="fld"><span>' + fld_.label + '</span><select id="' + id + '" data-cf="' + fld_.k + '"><option value="false"' + (String(v) !== 'true' ? ' selected' : '') + '>false</option><option value="true"' + (String(v) === 'true' ? ' selected' : '') + '>true</option></select></label>';
+    }
+    if (fld_.t === 'select') {
+      return '<label class="fld"><span>' + fld_.label + '</span><select id="' + id + '" data-cf="' + fld_.k + '">' +
+        fld_.opts.map((o) => '<option value="' + o + '"' + (v === o ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></label>';
+    }
+    const req = CONTENT_REQUIRED[section].indexOf(fld_.k) >= 0 ? ' *' : '';
+    return fld(fld_.label + req, '<input type="' + (fld_.t === 'number' ? 'text' : 'text') + '" id="' + id + '" data-cf="' + fld_.k + '" value="' + Core.esc(v) + '"' + (fld_.ph ? ' placeholder="' + fld_.ph + '"' : '') + '>');
+  }).join('');
+  openModal({
+    title: (slug ? 'Edit' : 'New') + ' ' + CONTENT_LABELS[section].replace(/s$/, '') + (slug ? ' — ' + slug : ''), wide: true,
+    saveLabel: 'Generate item.tsv',
+    body: fields,
+    onSave: () => {
+      const vals = {};
+      document.querySelectorAll('[data-cf]').forEach((el) => { const val = el.value.trim(); if (val !== '') vals[el.getAttribute('data-cf')] = val; });
+      if (!vals.slug) vals.slug = slug || slugify(vals.title);
+      const errs = validateContent(section, vals);
+      if (errs.length) { toast('Fix: ' + errs.join(', ')); return; }
+      openItemExport(section, vals.slug, buildItemTSV(section, vals));
+    }
+  });
+  // live markdown previews
+  document.querySelectorAll('textarea[data-md]').forEach((ta) => ta.addEventListener('input', () => {
+    document.getElementById('cf-prev-' + ta.getAttribute('data-cf')).innerHTML = Core.mdToHtml(ta.value);
+  }));
+}
+
+function validateContent(section, vals) {
+  const errs = [];
+  CONTENT_REQUIRED[section].forEach((k) => { if (!vals[k]) errs.push(k + ' required'); });
+  if (section === 'shop' && vals.price && isNaN(Number(String(vals.price).replace(/[^0-9.]/g, '')))) errs.push('price must be numeric');
+  return errs;
+}
+
+function buildItemTSV(section, vals) {
+  const order = CONTENT_SCHEMA[section].map((f) => f.k);
+  return order.filter((k) => vals[k] != null && vals[k] !== '')
+    .map((k) => k + '\t' + String(vals[k]).replace(/\r?\n/g, '\\n').replace(/\t/g, ' '))
+    .join('\n') + '\n';
+}
+
+function openItemExport(section, slug, tsv) {
+  const dir = 'public/' + section + '/' + slug + '/';
+  openModal({
+    title: 'item.tsv ready', wide: true, noSave: true,
+    body:
+      '<div class="hint">Save this as <code>' + dir + 'item.tsv</code> (create the folder if new), add any photo files, then run <code>npm run manifest</code> and redeploy.</div>' +
+      fld('item.tsv', '<textarea id="ie-src" readonly style="min-height:240px">' + Core.esc(tsv) + '</textarea>') +
+      '<div class="row"><button class="btn primary" id="ie-copy" type="button"><i class="ti ti-copy"></i> Copy</button>' +
+      '<button class="btn" id="ie-dl" type="button"><i class="ti ti-download"></i> Download item.tsv</button></div>'
+  });
+  document.getElementById('ie-copy').onclick = () => navigator.clipboard.writeText(tsv).then(() => toast('Copied item.tsv'), () => toast('Copy failed'));
+  document.getElementById('ie-dl').onclick = () => {
+    const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'item.tsv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('Downloaded item.tsv');
+  };
+}
+
+/* ===========================================================================
  * SEO MODAL
  * ========================================================================= */
 const SEO_FIELDS = [
@@ -451,6 +615,7 @@ function toast(msg) {
 /* ---------- toolbar wiring ---------- */
 document.getElementById('tg-mode').onclick = () => { editMode = !editMode; draw(); };
 document.getElementById('tg-seo').onclick = openSeo;
+document.getElementById('tg-content').onclick = openContent;
 document.getElementById('tg-snap').onclick = openSnaps;
 document.getElementById('tg-copy').onclick = copyTSV;
 document.getElementById('tg-dl').onclick = downloadTSV;

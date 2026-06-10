@@ -25,6 +25,10 @@ global.window = global;
 require(path.join(DIR, 'core.js'));
 const Core = global.window.Core;
 
+// (Re)generate the folder-driven content manifest (cases/shop/downloads).
+try { require(path.join(__dirname, 'scripts', 'build-manifest.js')); console.log(''); }
+catch (e) { console.warn('• content manifest step skipped: ' + e.message); }
+
 const tsvText = fs.readFileSync(TSV, 'utf8');
 let html = fs.readFileSync(HTML, 'utf8');
 

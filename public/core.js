@@ -162,6 +162,35 @@
   }
   function fmtDate(d) { if (!d) return ''; const dt = new Date(d); return isNaN(dt) ? d : dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
 
+  // Minimal, dependency-free Markdown -> HTML for the *_md content fields.
+  // Supports: # headings, **bold**, *italic*/_italic_, `code`, [links](url),
+  // - / * bullet lists, 1. ordered lists, > blockquotes, and paragraphs.
+  function mdInline(s) {
+    s = esc(s);
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, u) => '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    s = s.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return s;
+  }
+  function mdToHtml(md) {
+    const blocks = String(md || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+    let out = '';
+    for (const raw of blocks) {
+      const block = raw.trim();
+      if (!block) continue;
+      const lines = block.split('\n');
+      const h = block.match(/^(#{1,6})\s+([\s\S]*)$/);
+      if (h && lines.length === 1) { const lvl = Math.min(h[1].length + 1, 4); out += '<h' + lvl + '>' + mdInline(h[2]) + '</h' + lvl + '>'; continue; }
+      if (lines.every((l) => /^>\s?/.test(l))) { out += '<blockquote>' + mdInline(lines.map((l) => l.replace(/^>\s?/, '')).join(' ')) + '</blockquote>'; continue; }
+      if (lines.every((l) => /^[-*]\s+/.test(l))) { out += '<ul>' + lines.map((l) => '<li>' + mdInline(l.replace(/^[-*]\s+/, '')) + '</li>').join('') + '</ul>'; continue; }
+      if (lines.every((l) => /^\d+\.\s+/.test(l))) { out += '<ol>' + lines.map((l) => '<li>' + mdInline(l.replace(/^\d+\.\s+/, '')) + '</li>').join('') + '</ol>'; continue; }
+      out += '<p>' + mdInline(lines.join(' ')) + '</p>';
+    }
+    return out;
+  }
+
   // Render an icon value. Supports: inline SVG (starts with "<svg"), an image
   // URL (http/https/data), or a Tabler webfont icon name (e.g. "sparkles").
   function iconMarkup(val, fallbackName, extraCls) {
@@ -470,10 +499,13 @@
     const navRows = rowsOf(state, 'nav');
     // Nav links stay plain; editing happens in a modal (keeps the bar uncluttered).
     const navHtml = navRows.map((r) => '<a href="' + esc(r.anchor) + '">' + esc(r.label) + '</a>').join('');
+    // Auto nav links for folder-driven sections that have items (hidden when empty).
+    const contentNav = CONTENT_DEFS.filter((d) => hasContent(state, d.key))
+      .map((d) => '<a href="#' + d.key + '">' + esc(metaGroup(state, d.key).nav || d.label) + '</a>').join('');
     const navEdit = f.E ? '<button type="button" class="cms-nav-editbtn" data-cms-editnav title="Edit navigation"><i class="ti ti-pencil"></i> Nav</button>' : '';
     return '<header><div class="container nav">' +
       '<a href="#top" class="logo">' + logoMark(state, f) + f.text('config', logoIdx, 'value', { tag: 'span' }) + '</a>' +
-      '<nav class="nav-links">' + navHtml + navEdit + '</nav>' +
+      '<nav class="nav-links">' + navHtml + contentNav + navEdit + '</nav>' +
       '<div class="nav-cta">' +
       '<button class="btn btn-primary" data-book><i class="ti ti-calendar"></i>' + f.text('config', ctaIdx, 'value', { tag: 'span' }) + '</button>' +
       '<button class="burger" aria-label="Menu"><i class="ti ti-menu-2"></i></button>' +
@@ -780,6 +812,7 @@
       ((editable || showLive('pricing')) ? pricingSection(state, f) : '') +
       ((editable || showLive('faq')) ? faqSection(state, f) : '') +
       ((editable || showLive('blog')) ? blogSection(state, f) : '') +
+      contentSections(state, editable) +
       ctaSection(state, f) +
       '</main>' +
       footer(state, f);
@@ -877,6 +910,10 @@
     mount.querySelectorAll('.faq-q').forEach((q) => q.addEventListener('click', () => q.closest('.faq-item').classList.toggle('open')));
     const blog = rowsOf(state, 'blog');
     mount.querySelectorAll('[data-post]').forEach((cd) => cd.addEventListener('click', () => openPost(state, blog, +cd.dataset.post)));
+    // folder-driven content cards -> detail overlay
+    mount.querySelectorAll('[data-content]').forEach((cd) => cd.addEventListener('click', () => {
+      const p = cd.getAttribute('data-content').split('|'); openContentDetail(state, p[0], p[1]);
+    }));
     const burger = mount.querySelector('.burger'), navLinks = mount.querySelector('.nav-links');
     if (burger && navLinks) {
       burger.addEventListener('click', () => navLinks.classList.toggle('open'));
@@ -896,6 +933,150 @@
     const ov = document.getElementById('post-overlay');
     ov.classList.add('open'); document.body.style.overflow = 'hidden'; ov.scrollTop = 0;
     ov.querySelector('[data-book]').addEventListener('click', openBook);
+  }
+
+  /* ===========================================================================
+   * 11b. FOLDER-DRIVEN CONTENT SECTIONS — cases / shop / downloads
+   *      Data comes from state.content (the build-manifest.json), not the TSV.
+   *      Renders only when a section has >=1 item (empty sections hide entirely).
+   * ========================================================================= */
+  const CONTENT_DEFS = [
+    { key: 'cases', label: 'Case Studies', heading: 'Case studies' },
+    { key: 'shop', label: 'Shop', heading: 'Shop' },
+    { key: 'downloads', label: 'Free Downloads', heading: 'Free downloads' }
+  ];
+  function contentItems(state, key) { return (state.content && Array.isArray(state.content[key])) ? state.content[key] : []; }
+  function hasContent(state, key) { return contentItems(state, key).length > 0; }
+  function contentSections(state, editable) { return CONTENT_DEFS.map((d) => contentSection(state, d, editable)).join(''); }
+
+  function contentSection(state, def, editable) {
+    const items = contentItems(state, def.key);
+    if (!items.length) return '';
+    const meta = metaGroup(state, def.key);
+    const head = '<div class="section-head reveal">' +
+      (meta.eyebrow ? '<span class="eyebrow">' + esc(meta.eyebrow) + '</span>' : '') +
+      '<h2>' + esc(meta.heading || def.heading) + '</h2>' +
+      (meta.intro ? '<p>' + esc(meta.intro) + '</p>' : '') + '</div>';
+    const cards = items.map((it) => contentCard(def.key, it, editable)).join('');
+    return '<section class="content-sec content-' + def.key + '" id="' + def.key + '"><div class="container">' +
+      head + '<div class="c-grid">' + cards + '</div></div></section>';
+  }
+  function badgeOf(it) {
+    if (it.availability === 'sold_out') return '<span class="c-badge sold">Sold out</span>';
+    if (it.availability === 'preorder') return '<span class="c-badge pre">Pre-order</span>';
+    return '';
+  }
+  function priceHTML(it) {
+    if (it.sale_price) return '<span class="c-price"><span class="old">' + money(it.price, it.currency) + '</span> <span class="now">' + money(it.sale_price, it.currency) + '</span></span>';
+    return '<span class="c-price"><span class="now">' + money(it.price, it.currency) + '</span></span>';
+  }
+  function coverImg(it, w, alt) {
+    const src = it.cover ? uimg(it.cover, w) : '';
+    return src ? '<img src="' + esc(src) + '" alt="' + esc(alt || it.title) + '" loading="lazy">' : '<div class="c-nocover"><i class="ti ti-photo"></i></div>';
+  }
+  function contentCard(key, it, editable) {
+    const attr = ' data-content="' + esc(key + '|' + it.slug) + '"' + (editable ? ' data-content-edit="1"' : '');
+    const feat = it.featured ? ' is-featured' : '';
+    const edithint = editable ? '<span class="c-edit"><i class="ti ti-pencil"></i> Edit</span>' : '';
+    if (key === 'shop') {
+      return '<article class="c-card' + feat + '"' + attr + '><div class="c-cover">' + coverImg(it, 700) + badgeOf(it) + '</div>' +
+        '<div class="c-body">' + (it.category ? '<div class="c-eyebrow">' + esc(it.category) + '</div>' : '') +
+        '<h3>' + esc(it.title) + '</h3>' + priceHTML(it) + '</div>' + edithint + '</article>';
+    }
+    if (key === 'cases') {
+      const m = it.metrics && it.metrics[0];
+      return '<article class="c-card' + feat + '"' + attr + '><div class="c-cover">' + coverImg(it, 700) + '</div>' +
+        '<div class="c-body">' + (it.industry ? '<div class="c-eyebrow">' + esc(it.industry) + '</div>' : '') +
+        '<h3>' + esc(it.title) + '</h3>' + (it.client ? '<div class="c-sub">' + esc(it.client) + '</div>' : '') +
+        (m ? '<div class="c-topmetric"><span class="v">' + esc(m.value) + '</span> <span class="l">' + esc(m.label) + '</span></div>' : '') +
+        '</div>' + edithint + '</article>';
+    }
+    const fileMeta = it.file ? [it.file.type, it.file.size].filter(Boolean).join(' · ') : '';
+    return '<article class="c-card' + feat + '"' + attr + '><div class="c-cover">' + coverImg(it, 700) + '</div>' +
+      '<div class="c-body">' + (it.category ? '<div class="c-eyebrow">' + esc(it.category) + '</div>' : '') +
+      '<h3>' + esc(it.title) + '</h3>' +
+      (fileMeta ? '<div class="c-file"><i class="ti ti-file-download"></i> ' + esc(fileMeta) + (it.gated ? ' · <i class="ti ti-lock"></i> email' : '') + '</div>' : '') +
+      '</div>' + edithint + '</article>';
+  }
+
+  /* ---- detail overlay (reuses the blog post overlay) ---- */
+  function findContent(state, key, slug) { return contentItems(state, key).find((x) => x.slug === slug); }
+  function galleryHTML(it) {
+    const imgs = (it.images && it.images.length ? it.images : (it.cover ? [it.cover] : []));
+    if (!imgs.length) return '';
+    const main = '<img id="cd-main" class="cd-main" src="' + esc(uimg(imgs[0], 1200)) + '" alt="' + esc(it.title) + '">';
+    const thumbs = imgs.length > 1 ? '<div class="cd-thumbs">' + imgs.map((u, i) =>
+      '<img class="cd-thumb' + (i === 0 ? ' on' : '') + '" data-full="' + esc(uimg(u, 1200)) + '" src="' + esc(uimg(u, 200)) + '" alt="">').join('') + '</div>' : '';
+    return '<div class="cd-gallery">' + main + thumbs + '</div>';
+  }
+  function metaRowHTML(pairs) {
+    const cells = pairs.filter((p) => p[1]).map((p) => '<div><span class="k">' + esc(p[0]) + '</span><span class="v">' + esc(p[1]) + '</span></div>').join('');
+    return cells ? '<div class="cd-meta">' + cells + '</div>' : '';
+  }
+  function tagPills(tags) { return (tags && tags.length) ? '<div class="cd-tags">' + tags.map((t) => '<span>' + esc(t) + '</span>').join('') + '</div>' : ''; }
+  function shopDetail(it) {
+    const soldOut = it.availability === 'sold_out';
+    const cta = '<a class="btn btn-primary cd-cta' + (soldOut ? ' disabled' : '') + '"' +
+      (soldOut || !it.cta_url ? '' : ' href="' + esc(it.cta_url) + '" target="_blank" rel="noopener"') + '>' +
+      (soldOut ? 'Sold out' : esc(it.cta_label || 'Buy Now')) + '</a>';
+    return '<div class="cd-headline"><h1>' + esc(it.title) + '</h1><div class="cd-priceline">' + priceHTML(it) + ' ' + badgeOf(it) + '</div></div>' +
+      '<div class="post-body">' + mdToHtml(it.description_md) + '</div>' +
+      metaRowHTML([['SKU', it.sku], ['Category', it.category], ['Availability', (it.availability || '').replace(/_/g, ' ')]]) +
+      tagPills(it.tags) + '<div class="cd-actions">' + cta + '</div>';
+  }
+  function caseDetail(it) {
+    const stats = (it.metrics && it.metrics.length) ? '<div class="cd-metrics">' + it.metrics.map((m) =>
+      '<div class="cd-metric"><div class="v">' + esc(m.value) + '</div><div class="l">' + esc(m.label) + '</div></div>').join('') + '</div>' : '';
+    const block = (title, md) => md ? '<h2>' + title + '</h2>' + mdToHtml(md) : '';
+    const quote = it.testimonial_md ? '<div class="cd-quote">' + mdToHtml(it.testimonial_md) +
+      (it.testimonial_author ? '<div class="cd-quote-by">— ' + esc(it.testimonial_author) + '</div>' : '') + '</div>' : '';
+    const live = it.external_url ? '<div class="cd-actions"><a class="btn btn-ghost" href="' + esc(it.external_url) + '" target="_blank" rel="noopener">View live project <i class="ti ti-external-link"></i></a></div>' : '';
+    return '<div class="cd-headline"><h1>' + esc(it.title) + '</h1></div>' +
+      metaRowHTML([['Client', it.client], ['Industry', it.industry], ['Services', (it.services || []).join(', ')], ['Timeline', it.duration], ['Date', fmtDate(it.date)]]) +
+      stats + '<div class="post-body">' + block('The challenge', it.challenge_md) + block('The approach', it.approach_md) + block('The results', it.results_md) + '</div>' +
+      quote + tagPills(it.tags) + live;
+  }
+  function downloadDetail(it) {
+    const fileMeta = it.file ? [it.file.type, it.file.size].filter(Boolean).join(' · ') : '';
+    let action;
+    if (it.gated) {
+      action = '<form class="cd-gate" data-gate="' + esc(it.email_list_tag || '') + '" data-file="' + esc(it.file ? it.file.url : '') + '">' +
+        '<label class="cd-gate-label">Enter your email and we’ll send it over</label>' +
+        '<div class="cd-gate-row"><input type="email" required placeholder="you@example.com"><button class="btn btn-primary" type="submit">' + esc(it.cta_label || 'Download Free') + '</button></div>' +
+        '<div class="cd-gate-done" hidden></div></form>';
+    } else {
+      action = '<div class="cd-actions"><a class="btn btn-primary" href="' + esc(it.file ? it.file.url : '#') + '" download target="_blank" rel="noopener"><i class="ti ti-download"></i> ' + esc(it.cta_label || 'Download Free') + '</a></div>';
+    }
+    return '<div class="cd-headline"><h1>' + esc(it.title) + '</h1>' + (fileMeta ? '<div class="cd-filemeta"><i class="ti ti-file-text"></i> ' + esc(fileMeta) + '</div>' : '') + '</div>' +
+      '<div class="post-body">' + mdToHtml(it.description_md) + '</div>' + tagPills(it.tags) + action;
+  }
+  function openContentDetail(state, key, slug) {
+    const it = findContent(state, key, slug); if (!it) return;
+    const inner = key === 'shop' ? shopDetail(it) : key === 'cases' ? caseDetail(it) : downloadDetail(it);
+    document.getElementById('post-content').innerHTML =
+      '<div class="cd-wrap"><div class="container cd-container">' + galleryHTML(it) + '<div class="cd-content">' + inner + '</div></div></div>';
+    const ov = document.getElementById('post-overlay');
+    ov.classList.add('open'); document.body.style.overflow = 'hidden'; ov.scrollTop = 0;
+    if (history && history.replaceState) history.replaceState(null, '', '#' + key + '/' + (slug || ''));
+    const main = document.getElementById('cd-main');
+    ov.querySelectorAll('.cd-thumb').forEach((t) => t.addEventListener('click', () => {
+      if (main) main.src = t.getAttribute('data-full');
+      ov.querySelectorAll('.cd-thumb').forEach((x) => x.classList.remove('on')); t.classList.add('on');
+    }));
+    const form = ov.querySelector('[data-gate]');
+    if (form) form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = (form.querySelector('input[type=email]').value || '').trim(); if (!email) return;
+      const tag = form.getAttribute('data-gate'), file = form.getAttribute('data-file');
+      // TODO: wire to your email provider. POST { email, tag } to a Pages Function
+      // (e.g. functions/subscribe.js) — never put an API key in client code.
+      console.log('[lead-capture stub] subscribe', { email: email, tag: tag });
+      form.querySelector('.cd-gate-label').setAttribute('hidden', '');
+      form.querySelector('.cd-gate-row').setAttribute('hidden', '');
+      const done = form.querySelector('.cd-gate-done');
+      done.removeAttribute('hidden');
+      done.innerHTML = 'Thanks! Your download is ready. <a class="btn btn-primary" href="' + esc(file) + '" download target="_blank" rel="noopener"><i class="ti ti-download"></i> Download now</a>';
+    });
   }
 
   function observeReveal(mount) {
@@ -1025,6 +1206,13 @@
     // social links editor (modal)
     const socBtn = mount.querySelector('[data-cms-editsocials]');
     if (socBtn) socBtn.addEventListener('click', () => { if (opts.onEditSocials) opts.onEditSocials(() => { rerender(); onChange(); }); });
+
+    // folder-driven content cards -> editor's content form (browser can't write
+    // files, so the editor produces item.tsv for download — see editor.html).
+    mount.querySelectorAll('[data-content-edit]').forEach((cd) => cd.addEventListener('click', () => {
+      const p = cd.getAttribute('data-content').split('|');
+      if (opts.onEditContent) opts.onEditContent(p[0], p[1]);
+    }));
   }
 
   // Append a blank card to a table sheet, using the sheet's column schema.
@@ -1275,6 +1463,63 @@ footer{background:var(--bg-dark);color:#cbd5e1;padding:60px 0 28px}
 .reveal{opacity:0;transform:translateY(20px);transition:.6s ease}
 .reveal.in{opacity:1;transform:none}
 .cms-svg svg,.cms-svg-img{width:1em;height:1em;display:inline-block;vertical-align:-.125em}
+/* ---- folder-driven content sections (cases / shop / downloads) ---- */
+.content-cases{background:var(--bg-alt)}
+.content-downloads{background:var(--bg-alt)}
+.c-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:26px}
+.c-card{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:.2s;display:flex;flex-direction:column}
+.c-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.c-card.is-featured{border-color:var(--primary);box-shadow:var(--shadow)}
+.c-cover{position:relative;aspect-ratio:4/3;background:var(--bg-alt)}
+.c-cover img{width:100%;height:100%;object-fit:cover}
+.c-nocover{width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:2rem}
+.c-badge{position:absolute;top:12px;left:12px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:5px 11px;border-radius:999px;color:#fff}
+.c-badge.sold{background:var(--secondary)}
+.c-badge.pre{background:var(--accent)}
+.c-body{padding:20px;display:flex;flex-direction:column;gap:6px;flex-grow:1}
+.c-eyebrow{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--primary)}
+.c-card h3{font-size:1.2rem;line-height:1.25}
+.c-sub{color:var(--muted);font-size:.92rem}
+.c-price{font-family:var(--font-head);margin-top:4px}
+.c-price .now{font-weight:800;font-size:1.3rem;color:var(--secondary)}
+.c-price .old{text-decoration:line-through;color:var(--muted);font-weight:600;margin-right:6px;font-size:1rem}
+.c-topmetric{margin-top:auto;display:flex;align-items:baseline;gap:7px}
+.c-topmetric .v{font-family:var(--font-head);font-weight:800;font-size:1.45rem;color:var(--primary)}
+.c-topmetric .l{font-size:.82rem;color:var(--muted)}
+.c-file{margin-top:auto;font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.c-file i{color:var(--primary)}
+/* content detail (inside the post overlay) */
+.cd-wrap{padding:54px 0 90px}
+.cd-container{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start;max-width:1080px}
+.cd-gallery{position:sticky;top:24px}
+.cd-main{width:100%;border-radius:18px;box-shadow:var(--shadow-lg);aspect-ratio:4/3;object-fit:cover}
+.cd-thumbs{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.cd-thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;cursor:pointer;border:2px solid transparent;opacity:.7;transition:.15s}
+.cd-thumb.on,.cd-thumb:hover{opacity:1;border-color:var(--primary)}
+.cd-headline h1{font-size:clamp(1.7rem,3.4vw,2.4rem);margin-bottom:10px}
+.cd-priceline{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cd-filemeta{color:var(--muted);font-size:.95rem;display:inline-flex;gap:7px;align-items:center;margin-bottom:8px}
+.cd-filemeta i{color:var(--primary)}
+.cd-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:20px 0;padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.cd-meta .k{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.cd-meta .v{font-weight:600;color:var(--secondary)}
+.cd-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;margin:24px 0}
+.cd-metric{background:var(--bg-alt);border-radius:14px;padding:18px;text-align:center}
+.cd-metric .v{font-family:var(--font-head);font-weight:800;font-size:2rem;color:var(--primary);line-height:1}
+.cd-metric .l{font-size:.84rem;color:var(--muted);margin-top:6px}
+.cd-quote{border-left:4px solid var(--primary);padding:6px 0 6px 22px;margin:28px 0;font-style:italic;color:var(--text)}
+.cd-quote p{font-size:1.15rem;margin-bottom:8px}
+.cd-quote-by{font-style:normal;font-weight:700;color:var(--secondary);font-size:.92rem}
+.cd-tags{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.cd-tags span{background:var(--bg-alt);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:.8rem;color:var(--muted)}
+.cd-actions{margin-top:24px}
+.cd-cta.disabled{background:var(--muted);pointer-events:none;opacity:.7}
+.cd-gate{margin-top:24px;background:var(--bg-alt);border:1px solid var(--border);border-radius:14px;padding:20px}
+.cd-gate-label{display:block;font-weight:600;margin-bottom:10px;color:var(--secondary)}
+.cd-gate-row{display:flex;gap:10px;flex-wrap:wrap}
+.cd-gate-row input{flex:1;min-width:200px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:1rem}
+.cd-gate-done .btn{margin-top:4px}
+@media(max-width:820px){.cd-container{grid-template-columns:1fr;gap:28px}.cd-gallery{position:static}}
 @media(max-width:920px){
   .hero-grid,.about-grid{grid-template-columns:1fr;gap:36px}
   .hero-media{order:-1}
@@ -1350,6 +1595,10 @@ footer{background:var(--bg-dark);color:#cbd5e1;padding:60px 0 28px}
 .cms-star{cursor:pointer;font-size:1.15rem;line-height:1;color:#cbd5e1;transition:transform .1s}
 .cms-star.on{color:var(--accent)}
 .cms-star:hover{transform:scale(1.2)}
+.cms-editable .c-card{outline:1px dashed transparent;outline-offset:3px}
+.cms-editable .c-card:hover{outline-color:rgba(29,158,117,.5)}
+.c-edit{position:absolute;top:10px;right:10px;z-index:3;background:rgba(15,23,42,.82);color:#fff;border-radius:999px;padding:5px 11px;font:600 .75rem var(--font-body),sans-serif;display:inline-flex;gap:5px;align-items:center;opacity:0;transition:.15s}
+.cms-editable .c-card:hover .c-edit{opacity:1}
 `;
 
   /* ===========================================================================
@@ -1357,6 +1606,7 @@ footer{background:var(--bg-dark);color:#cbd5e1;padding:60px 0 28px}
    * ========================================================================= */
   global.Core = {
     parseTSV, serializeTSV, render, applyHead, seoTags, seoValues, ensureSchema, selfTest,
+    mdToHtml, openContentDetail, contentItems, CONTENT_DEFS,
     // utilities the editor reuses:
     kvObj, kvVal, kvIdx, rowsOf, getSheet, getCell, setCell, suggestAlt,
     esc, list, bool, money, uimg, fmtDate, deepEqual,

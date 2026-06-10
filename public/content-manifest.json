@@ -1,0 +1,105 @@
+{
+  "generated": "2026-06-10T14:51:18.132Z",
+  "cases": [
+    {
+      "slug": "burnout-to-balance",
+      "title": "From Burnout to Balance",
+      "client": "Lumen Studios",
+      "industry": "Creative Agency",
+      "services": [
+        "1:1 Coaching",
+        "Team Workshops"
+      ],
+      "date": "2026-03",
+      "duration": "3 months",
+      "challenge_md": "The founding team at Lumen was **running on empty**. Deadlines were slipping, two senior designers were close to quitting, and the founders hadn't taken a real day off in months.\n\nThey didn't need another productivity hack — they needed to change their relationship with work.",
+      "approach_md": "We ran a three-month engagement combining:\n\n1. **Weekly 1:1 coaching** with the two founders\n2. **Two team workshops** on boundaries and sustainable focus\n3. A simple daily grounding practice the whole team could share\n\nThe goal was steadier energy, not more hustle.",
+      "results_md": "By month three the team had reclaimed their evenings and rebuilt trust.\n\n- Stress scores dropped sharply on the team pulse survey\n- Focus time tripled with protected deep-work blocks\n- **Nobody quit** — and two people were promoted",
+      "metrics": [
+        {
+          "value": "-42%",
+          "label": "Reported stress"
+        },
+        {
+          "value": "3x",
+          "label": "Weekly focus blocks"
+        },
+        {
+          "value": "100%",
+          "label": "Team retention"
+        }
+      ],
+      "testimonial_md": "> Maya gave our team the language and the space to slow down without losing momentum. It changed how we work.",
+      "testimonial_author": "Dana R., Creative Director",
+      "tags": [
+        "burnout",
+        "leadership",
+        "wellbeing"
+      ],
+      "external_url": "",
+      "featured": true,
+      "sort_order": 1,
+      "cover": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
+      "images": [
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330"
+      ]
+    }
+  ],
+  "downloads": [
+    {
+      "slug": "daily-grounding-checklist",
+      "title": "The Daily Grounding Checklist",
+      "description_md": "## Five minutes to a steadier day\n\nA one-page checklist you can keep on your desk or phone — five simple grounding steps to start the day clear and centred.\n\n**Who it's for:** anyone who wakes up already behind.\n\n- A 3-breath reset\n- A 60-second body scan\n- One intention for the day",
+      "file": {
+        "url": "/downloads/daily-grounding-checklist/guide.pdf",
+        "type": "PDF",
+        "size": "637 B",
+        "bytes": 637
+      },
+      "gated": true,
+      "email_list_tag": "grounding-checklist",
+      "cta_label": "Get the free checklist",
+      "category": "Checklist",
+      "tags": [
+        "grounding",
+        "anxiety",
+        "daily-practice"
+      ],
+      "published_date": "2026-05-01",
+      "featured": true,
+      "sort_order": 1,
+      "cover": "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d",
+      "images": [
+        "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d"
+      ]
+    }
+  ],
+  "shop": [
+    {
+      "slug": "mindful-mornings-journal",
+      "title": "Mindful Mornings Journal",
+      "price": 750,
+      "currency": "PHP",
+      "sale_price": 600,
+      "description_md": "## A calmer start to every day\n\nA **90-day guided journal** with morning intentions, gratitude prompts, and an evening reflection — designed to pair with your coaching sessions.\n\n- Lay-flat binding, 160 pages\n- Daily intention + gratitude prompts\n- Weekly reflection spreads\n\n[See a sample spread](https://example.com/journal-sample)",
+      "category": "Journals",
+      "tags": [
+        "journaling",
+        "mindfulness",
+        "gratitude"
+      ],
+      "sku": "JRNL-90",
+      "availability": "in_stock",
+      "cta_label": "Buy Now",
+      "cta_url": "https://example.com/checkout/mindful-mornings-journal",
+      "featured": true,
+      "sort_order": 1,
+      "cover": "https://images.unsplash.com/photo-1506126613408-eca07ce68773",
+      "images": [
+        "https://images.unsplash.com/photo-1506126613408-eca07ce68773",
+        "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d"
+      ]
+    }
+  ]
+}

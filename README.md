@@ -98,6 +98,87 @@ it empty for the default coloured dot, or set it to **inline `<svg>…</svg>`**,
 to the logo name to open the icon modal and paste it in; the colour follows your
 `primary_color`. (The logo text itself is the `config.logo_text` cell.)
 
+## Content sections (v2): Case Studies · Shop · Downloads
+
+These three sections are **folder-driven**: each item is a subfolder under
+`public/` containing one `item.tsv` (key/value, same style as the kv sheets)
+plus any photos. Add a subfolder → the item appears on the site. A section with
+zero items (or a missing folder) is hidden entirely, **nav included**.
+
+```
+public/
+  cases/{slug}/item.tsv          # Case Studies
+  shop/{slug}/item.tsv           # Shop
+  downloads/{slug}/item.tsv      # Lead magnets / downloadables
+      guide.pdf                  # (downloads) the actual file, referenced by `file`
+      cover.jpg  photo-01.jpg …  # optional local photos (auto-listed, sorted)
+```
+
+Canonical downloads folder is **`/downloads/`** (there is no `/leadmagnets/`).
+
+**Images** can be local files in the folder (auto-detected; `cover.*` or the
+first image alphabetically becomes the cover) **or** explicit URLs/filenames via
+the `cover` and `images` (`a|b|c`) fields in `item.tsv`. `*_md` fields are
+markdown (headings, bold/italic, lists, links, blockquote — rendered by the
+built-in parser in `core.js`).
+
+### Folder detection = a manifest step
+
+Cloudflare Pages can't list folders at runtime, so `scripts/build-manifest.js`
+scans the three folders, validates each `item.tsv`, auto-derives image lists +
+cover + download file type/size, and writes **`public/content-manifest.json`**
+— the only file the renderer/editor read. Run it (it's also part of `build`):
+
+```bash
+npm run manifest      # scan folders -> public/content-manifest.json
+npm run build         # manifest + SEO head + offline fallback (one command)
+```
+
+It prints a per-section summary and warns about (and skips) items missing
+required fields. **Commit `content-manifest.json`** — Pages serves it as-is.
+
+### TSV schemas
+
+**Shop** — `public/shop/{slug}/item.tsv`: `title`*, `slug`, `price`* (numeric),
+`currency` (def `PHP`), `sale_price` (struck-through original), `description_md`*,
+`category`, `tags` (csv), `sku`, `availability` (`in_stock`|`sold_out`|`preorder`),
+`cta_label` (def "Buy Now"), `cta_url`, `featured`, `sort_order`, `cover`, `images`.
+
+**Case Study** — `public/cases/{slug}/item.tsv`: `title`*, `slug`, `client`,
+`industry`, `services` (csv), `date` (YYYY-MM), `duration`, `challenge_md`*,
+`approach_md`*, `results_md`*, `metrics` (`value|label;value|label` → stat blocks),
+`testimonial_md`, `testimonial_author`, `tags`, `external_url`, `featured`,
+`sort_order`, `cover`, `images`.
+
+**Download** — `public/downloads/{slug}/item.tsv`: `title`*, `slug`,
+`description_md`*, `file`* (filename in folder or URL), `file_type`/`file_size`
+(auto-detected if blank), `gated` (`true` → inline email capture reveals the
+link), `email_list_tag` (segment for the capture), `cta_label` (def "Download
+Free"), `category`, `tags`, `published_date`, `featured`, `sort_order`, `cover`,
+`images`.  (`*` = required; items missing required fields are skipped with a warning.)
+
+> Sort order is `featured` first, then `sort_order` ascending, then date. Detail
+> pages open as a hash-routed overlay (`#shop/{slug}`, `#cases/{slug}`,
+> `#downloads/{slug}`) — the same overlay pattern as blog posts.
+>
+> **Gated downloads:** the email-capture submit handler is a **stub** (search
+> `TODO` in `core.js`) — wire it to Mailchimp/your ESP later. No API keys are
+> stored anywhere.
+
+### Add a new item end-to-end
+
+1. **In the editor** (`/editor.html` → **Content** button): pick a section →
+   **Add**, fill the form (markdown fields have a live preview, required fields
+   are validated), click **Generate item.tsv**, and **Copy/Download** it.
+2. Create `public/{section}/{slug}/` and save the file as `item.tsv`.
+3. Add photos to the folder (or point `cover`/`images` at Unsplash URLs); for a
+   download, add the file and set `file`.
+4. `npm run build` (regenerates the manifest), commit, push → Pages redeploys.
+
+(The editor can't write to disk on static hosting, so it generates `item.tsv`
+for you to drop in — same idea as Copy TSV. Editing an existing item fetches its
+`item.tsv`, pre-fills the form, and regenerates it.)
+
 ## Edit → deploy workflow
 
 ```

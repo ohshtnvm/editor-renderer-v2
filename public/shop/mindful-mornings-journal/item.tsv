@@ -1,0 +1,16 @@
+title	Mindful Mornings Journal
+slug	mindful-mornings-journal
+price	750
+currency	PHP
+sale_price	600
+description_md	## A calmer start to every day\n\nA **90-day guided journal** with morning intentions, gratitude prompts, and an evening reflection — designed to pair with your coaching sessions.\n\n- Lay-flat binding, 160 pages\n- Daily intention + gratitude prompts\n- Weekly reflection spreads\n\n[See a sample spread](https://example.com/journal-sample)
+category	Journals
+tags	journaling, mindfulness, gratitude
+sku	JRNL-90
+availability	in_stock
+cta_label	Buy Now
+cta_url	https://example.com/checkout/mindful-mornings-journal
+featured	true
+sort_order	1
+cover	https://images.unsplash.com/photo-1506126613408-eca07ce68773
+images	https://images.unsplash.com/photo-1506126613408-eca07ce68773|https://images.unsplash.com/photo-1447752875215-b2761acb3c5d
