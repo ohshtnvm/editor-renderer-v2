@@ -1,0 +1,4 @@
+# Cloudflare Pages headers
+/coach-data.tsv
+  Content-Type: text/tab-separated-values; charset=utf-8
+  Cache-Control: no-cache

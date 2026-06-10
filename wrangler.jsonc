@@ -1,0 +1,32 @@
+{
+  // Static-assets-only Worker. Serves everything in ./public as a static site.
+  // Edit content in public/coach-data.tsv (or visually via /editor.html) — no build step needed.
+  "name": "editor-renderer-v2",
+  "compatibility_date": "2025-05-01",
+  "assets": {
+    "directory": "./public"
+  }
+
+  // ---------------------------------------------------------------------------
+  // OPTIONAL — image upload via R2 (functions/upload.js)
+  // ---------------------------------------------------------------------------
+  // The editor's image modal has an "Add file" button that POSTs to an upload
+  // endpoint. functions/upload.js implements that endpoint and stores the file
+  // in an R2 bucket, returning a public URL. It is DISABLED unless you:
+  //
+  //   1. Create an R2 bucket and (recommended) attach a public custom domain.
+  //   2. Add the binding + the public base URL below, then redeploy.
+  //   3. Set UPLOAD_ENDPOINT in public/editor.html to "/upload" (or your route).
+  //
+  // Do NOT commit real bucket names or secrets to a public repo — fill these in
+  // your own deploy, or set them as Pages environment variables / secrets.
+  //
+  // "r2_buckets": [
+  //   { "binding": "UPLOADS", "bucket_name": "<your-bucket-name>" }
+  // ],
+  // "vars": {
+  //   // Public base URL that serves objects from the bucket above, e.g.
+  //   // "https://assets.example.com" — used to build the returned image URL.
+  //   "R2_PUBLIC_BASE": "<your-public-r2-base-url>"
+  // }
+}

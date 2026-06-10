@@ -1,0 +1,159 @@
+#config
+key	value
+coach_name	Maya Patel
+coach_title	Spiritual Life Coach & Meditation Guide
+coach_type	spiritual
+logo_text	Maya Patel
+currency	USD
+primary_color	#A38AB0
+secondary_color	#4A4458
+accent_color	#D9B96B
+text_dark	#5A5560
+bg_light	#F7F2F6
+font_heading	Fraunces
+font_body	Nunito Sans
+site_domain	https://mayapatel.example.com
+email	hello@mayapatel.example.com
+phone	+1 (555) 888-1111
+location	Los Angeles, CA · Global
+calcom_link	maya/discovery-call
+cta_primary_text	Start your journey
+linkedin	https://linkedin.com/in/mayapatel
+twitter	https://x.com/mayapatel
+instagram	https://instagram.com/mayapatel
+facebook
+meta_title	Spiritual Life Coaching & Meditation | Maya Patel
+meta_description	Find peace, purpose, and alignment. Personalized spiritual coaching to help you live authentically and unlock your highest potential.
+meta_keywords	spiritual coach, life coaching, meditation, mindfulness, purpose, spiritual guidance
+og_image	https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&q=75&auto=format&fit=crop
+show_testimonials	true
+show_pricing	true
+show_faq	true
+show_blog	true
+footer_tagline	Guiding you toward peace, purpose, and authentic living.
+robots	index, follow
+og_type	website
+twitter_card	summary_large_image
+schema_type	Person
+aggregate_rating	5
+favicon	
+theme_color	
+og_site_name	
+og_image_alt	
+twitter_site	
+twitter_image	
+schema_logo	
+schema_telephone	
+schema_address	
+logo_svg	
+
+#nav
+label	anchor
+About	#about
+Services	#services
+Pricing	#pricing
+Stories	#testimonials
+Insights	#blog
+FAQ	#faq
+
+#meta
+key	value
+services_eyebrow	How I guide
+services_heading	Services tailored to your spiritual path
+services_intro	Meet you where you are on your journey of awakening and growth.
+testimonials_eyebrow	Transformation
+testimonials_heading	Lives shifted, spirits awakened
+testimonials_intro	Real stories from people who found their way back to themselves.
+pricing_eyebrow	Investment
+pricing_heading	Accessible guidance for every stage
+pricing_intro	Choose the level of support that resonates with your journey.
+faq_eyebrow	Questions
+faq_heading	Common questions about spiritual coaching
+faq_intro	Everything you need to know about working together.
+blog_eyebrow	Wisdom
+blog_heading	Reflections & practices
+blog_intro	Essays and guided practices to deepen your inner work.
+footer_explore_heading	Explore
+footer_contact_heading	Contact
+footer_getstarted_heading	Get started
+pricing_popular_label	Most popular
+blog_readmore_text	Read article
+blog_back_text	Back
+loading_text	Loading site…
+
+#hero
+key	value
+badge	Trusted by 500+ seekers on their transformation
+headline	Find your path to *peace* and *purpose*
+subheadline	Personalized spiritual guidance to help you awaken to your authentic self, release what no longer serves, and live in alignment with your deepest values.
+cta_text	Start your free discovery call
+cta_secondary_text	Learn my approach
+cta_secondary_url	#services
+image	https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=900&q=75&auto=format&fit=crop
+image_alt	Maya Patel in a peaceful meditation garden setting
+float_icon	sparkles
+float_value	15 yrs
+float_label	of spiritual practice & study
+stat1_value	500+
+stat1_label	clients guided
+stat2_value	4.9/5
+stat2_label	transformation rate
+stat3_value	Global
+stat3_label	community
+badge_icon	sparkles
+
+#about
+key	value
+eyebrow	My journey
+heading	From seeker to guide — helping others find their light
+image	https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=75&auto=format&fit=crop
+image_alt	Maya Patel leading a group meditation session
+intro	I help spiritual seekers navigate the journey from confusion to clarity, from resistance to acceptance.
+story	<p>For 15 years I've studied Eastern philosophy, completed intensive meditation retreats, and trained in somatic coaching. I've sat with my own darkness and emerged transformed — and I know you can too.</p><p>I don't believe in one-size-fits-all spirituality. Every soul is unique. My coaching meets <em>you</em> where you are: whether you're questioning your beliefs, grieving a major life transition, seeking deeper purpose, or ready to finally release what's been holding you back.</p>
+points	15+ years of meditation & spiritual study|Certified coach in somatic work & trauma-informed practice|Trained in multiple wisdom traditions|Non-dogmatic, intuitive, judgment-free
+signature	— Maya
+
+#services
+name	slug	target_audience	description	duration	frequency	deliverables	price	pricing_model	icon	cta_text	order
+Awakening Sessions	awakening-sessions	Seekers beginning their spiritual journey	One-on-one guidance to explore your questions, beliefs, and what authenticity means for you.	6 weeks	Weekly	6 video calls|Guided journaling prompts|Meditation recordings|Email support			sparkles	Learn about pricing	1
+Sacred Alignment Coaching	sacred-alignment	Those ready for deeper inner work	Personalized coaching to uncover blocks, release old patterns, and align your life with your true self.	3 months	Bi-weekly	6 coaching sessions|Personalized ritual practices|Somatic release work|Intuitive guidance			heart	Learn about pricing	2
+Soul Evolution Program	soul-evolution	Committed seekers on a transformational path	Complete spiritual transformation — healing, awakening, and building a life rooted in purpose and peace.	6 months	Bi-weekly + monthly group	12 private sessions|Monthly group wisdom circles|Personalized spiritual practices|Lifetime community access			moon-stars	Learn about pricing	3
+
+#testimonials
+client_name	role	company	industry	testimonial	result_metric	result_value	photo	rating
+Sophia Chen	Marketing Director	Tech Startup	Corporate	Maya helped me see that my ambition was covering up a deep need for belonging. The spiritual work was the missing piece in my healing. I'm finally at peace.	Life transformation	Found inner peace & authentic purpose	https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&q=75&auto=format&fit=crop	5
+James Rodriguez	Creative	Freelance	Arts	I came in cynical, I left with an open heart. Maya's non-judgmental space allowed me to explore spirituality on my own terms. Life-changing.	Spiritual awakening	Reconnected with purpose	https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&q=75&auto=format&fit=crop	5
+Aisha Williams	Therapist	Private Practice	Wellness	As a fellow practitioner, I was blown away by Maya's wisdom and intuition. She helped me deepen my own spiritual foundation and better serve my clients.	Professional growth	Enhanced coaching practice	https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&q=75&auto=format&fit=crop	5
+
+#pricing
+tier_name	slug	price	currency	billing	duration	target_audience	features	excluded	is_popular	cta_text	order
+Guided Seeker	guided-seeker	297	USD	monthly	3 month engagement	Curious beginners	Monthly 1:1 session|Meditation recordings|Email support|Community access	Group sessions|Advanced practices	false	Begin here	1
+Sacred Path	sacred-path	697	USD	monthly	6 month engagement	Committed explorers	Bi-weekly sessions|Personalized practices|Somatic work|Community circles	VIP mentorship|Lifetime access	true	Start transforming	2
+Complete Awakening	complete-awakening	1500	USD	monthly	12 month engagement	Full transformation seekers	Weekly 1:1 sessions|All modalities|Priority access|Lifetime community|VIP mentorship	Retreats	false	Apply now	3
+
+#faq
+question	answer	category	order
+What is spiritual coaching?	<p>Spiritual coaching combines coaching techniques with wisdom traditions and somatic (body-based) practices. It's not therapy, and it's not one religion — it's a personalized exploration of what spirituality, purpose, and authenticity mean for <em>you</em>.</p>	general	1
+Do I need to be religious or have existing beliefs?	<p>No. I work with people across all beliefs — atheists, agnostics, devout practitioners of any faith. Spiritual coaching is about your personal truth, not any doctrine.</p>	fit	2
+What can I realistically expect to shift?	<p>Most people experience clarity within the first few sessions — they stop feeling lost. Over weeks and months: released patterns, deeper peace, better boundaries, alignment with their values, and a sense of purpose that radiates into every part of their life.</p>	results	3
+How is this different from therapy?	<p>Therapy often focuses on healing past wounds and managing symptoms. Coaching focuses on moving forward — discovering who you want to become and building the inner foundation to live that. Many people do both.</p>	process	4
+What if I'm skeptical?	<p>Healthy skepticism is good — it keeps us grounded. A free discovery call lets you feel my energy and approach. No pressure, no sales pitch. If it doesn't resonate, that's okay.</p>	fit	5
+How private is this?	<p>Completely confidential. Our conversations, your practices, your journey — all held in sacred privacy.</p>	general	6
+
+#blog
+title	slug	meta_description	content	publish_date	category	tags	reading_time	image	image_alt	author	featured
+The Art of Letting Go: Release What No Longer Serves	letting-go	Master the spiritual practice of releasing patterns, beliefs, and attachments that limit your freedom and authentic expression.	<p>One of the most transformative spiritual practices is learning what to release.</p><p>We spend much of our lives accumulating: beliefs, habits, relationships, identities. But growth often demands the opposite — the willingness to let go.</p><h2>Why Letting Go Is Hard</h2><p>Letting go feels like loss, even when what we're releasing causes us pain. We cling to the familiar because at least we know it. The unknown terrifies us.</p><h2>The Practice of Sacred Release</h2><p>I use a simple somatic practice with clients: notice what you're holding (literally and metaphorically), feel the weight of it, speak what you're releasing, then consciously open your hands and let it fall away.</p><blockquote>Freedom lives on the other side of release.</blockquote><p>This practice works whether you're releasing a belief, a relationship, a version of yourself that no longer fits, or even unexpressed grief.</p><h2>After the Release</h2><p>Notice the space that opens. That's where your new self is born.</p>	2026-05-15	reflections	letting-go,transformation,spiritual-practice	6	https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=700&q=75&auto=format&fit=crop	Woman in meditation posture releasing into surrender	Maya Patel	true
+Finding Your North Star: How to Reconnect With Purpose	north-star	A guided exploration of discovering (or rediscovering) your authentic purpose and the spiritual practice of staying aligned with it.	<p>Purpose is not something you find once and keep forever. It evolves as you do.</p><p>Many of my clients come in burnt out, wondering "Is this really what I'm meant to do?" They've disconnected from their north star — the inner knowing of why they're here.</p><h2>Purpose vs. Goals</h2><p>Goals are destinations. Purpose is why the journey matters.</p><p>You can achieve every goal and still feel empty if you've lost sight of purpose. Conversely, you can pursue a purpose-driven life and feel fulfilled even when external circumstances are imperfect.</p><h2>Reconnecting With Your Why</h2><p>Here's a practice: sit quietly and ask yourself: "What makes me feel most alive? What would I do even without external reward?" Listen. Don't think. Feel.</p><p>Your answer is a thread back to your north star.</p>	2026-04-28	practices	purpose,alignment,authenticity	5	https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=700&q=75&auto=format&fit=crop	Stars guiding a spiritual seeker	Maya Patel	false
+Grief as a Gateway: Honoring Loss in Your Spiritual Unfolding	grief-gateway	Why grief is not the enemy of spirituality — it's an invitation to deeper compassion, wisdom, and wholeness.	<p>Spiritual seekers sometimes believe they should transcend difficult emotions like grief. But this is a misunderstanding.</p><p>Grief is sacred. It's how we honor what mattered. And it opens us to profound compassion — for ourselves and others.</p><h2>Grief Isn't Linear</h2><p>It comes in waves. You can be "healed" and still cry. This is wholeness, not regression.</p><h2>The Spiritual Work of Grieving</h2><p>Instead of rushing past it, I invite clients to befriend their grief. Sit with it. Journal with it. Let it move through your body. It has wisdom for you.</p><h2>On the Other Side</h2><p>When you stop fighting your grief, you find softness. Wisdom. A deeper capacity to love.</p>	2026-04-05	reflections	grief,loss,compassion	7	https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=700&q=75&auto=format&fit=crop	A quiet forest path symbolizing the journey through grief	Maya Patel	false
+
+#cta_final
+key	value
+heading	Ready to find your path?
+subheadline	Let's talk about where you are and what awakening looks like for you — free, confidential, no obligation.
+cta_text	Book your free discovery call
+
+#footer
+key	value
+about_text	Spiritual coaching for seekers ready to align with their authentic self, release old patterns, and build a life rooted in peace and purpose.
+cta_text	Your journey of awakening begins with a single conversation.
+copyright	All rights reserved.

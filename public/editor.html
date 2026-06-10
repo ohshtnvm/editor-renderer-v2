@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor · coach-site-cms</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+/* ---- editor chrome only (the SITE styling comes from core.js) ---- */
+/* Full-width bar pinned ABOVE the site so it never overlaps the sticky navbar. */
+body{padding-top:54px}
+.cms-toolbar{position:fixed;top:0;left:0;right:0;height:54px;z-index:300;display:flex;gap:8px;align-items:center;
+  justify-content:flex-end;padding:0 14px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #e6eae8;overflow-x:auto}
+#site header{top:54px}  /* the site's own sticky header sits just below the toolbar */
+.cms-toolbar button{font:600 .85rem/1 'Inter',system-ui,sans-serif;border:1px solid #e6eae8;background:#fff;color:#0f172a;
+  border-radius:999px;padding:9px 15px;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.10);display:inline-flex;gap:6px;align-items:center;transition:.15s;white-space:nowrap;flex:none}
+.cms-toolbar button:hover{transform:translateY(-1px);border-color:#1D9E75;color:#1D9E75}
+.cms-toolbar button.primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.cms-toolbar button.primary:hover{background:#157a5a;color:#fff}
+body.previewing .edit-only{display:none}
+.cms-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:400;background:#0f172a;color:#fff;
+  padding:11px 20px;border-radius:999px;font:600 .85rem 'Inter',system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.3);opacity:0;transition:.25s;pointer-events:none}
+.cms-toast.show{opacity:1}
+/* editor modals (separate from the site's book modal) */
+.em-back{position:fixed;inset:0;z-index:350;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.em-back.open{display:flex}
+.em{background:#fff;border-radius:16px;width:100%;max-width:560px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:'Inter',system-ui,sans-serif}
+.em.wide{max-width:780px}
+.em-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #eef1f0}
+.em-head h3{font:800 1.1rem 'Inter',system-ui,sans-serif;margin:0;color:#0f172a}
+.em-x{border:0;background:#f1f5f4;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;color:#0f172a}
+.em-body{padding:20px;display:grid;gap:14px;max-height:70vh;overflow-y:auto}
+.em-foot{padding:14px 20px;border-top:1px solid #eef1f0;display:flex;gap:10px;justify-content:flex-end}
+.em label.fld{display:grid;gap:5px;font:600 .8rem 'Inter';color:#475569}
+.em input[type=text],.em input[type=url],.em textarea,.em select{font:400 .92rem 'Inter';padding:9px 11px;border:1px solid #d8dedb;border-radius:8px;width:100%;color:#0f172a;background:#fff}
+.em textarea{min-height:120px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;line-height:1.5}
+.em .btn{font:700 .9rem 'Inter';border:1px solid #e6eae8;background:#fff;color:#0f172a;border-radius:9px;padding:10px 18px;cursor:pointer}
+.em .btn.primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.em .btn.danger{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.em .hint{font:400 .78rem 'Inter';color:#64748b}
+.em .row{display:flex;gap:10px;align-items:center}
+.em .grp{border:1px solid #eef1f0;border-radius:10px;padding:14px;display:grid;gap:12px}
+.em .grp h4{margin:0;font:800 .78rem 'Inter';text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
+.em .imgprev{width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid #eef1f0;background:#f8fafc}
+.em .iconprev{font-size:2rem;color:#1D9E75;min-height:48px;display:grid;place-items:center;border:1px dashed #d8dedb;border-radius:8px}
+.em .snap{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #eef1f0;border-radius:8px;padding:9px 12px}
+.em .snap .meta{font:600 .85rem 'Inter';color:#0f172a}
+.em .snap .meta small{display:block;font-weight:400;color:#94a3b8;font-size:.72rem}
+.em .navrow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.em .navrow .nav-label{flex:1}
+.em .navrow .nav-anchor{max-width:150px}
+.em .navrow .nav-del{padding:7px 11px;flex:none}
+.em #nav-add{margin-top:4px}
+.previewing .cms-edit-banner{display:none}
+.cms-edit-banner{position:fixed;bottom:0;left:0;right:0;z-index:120;background:#1D9E75;color:#fff;text-align:center;font:600 .8rem 'Inter';padding:6px;opacity:.0;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div class="cms-toolbar">
+  <button id="tg-mode" class="primary" title="Toggle preview"><i class="ti ti-eye"></i><span id="tg-label">Exit Edit Mode</span></button>
+  <button id="tg-seo" class="edit-only" title="Edit SEO & structured data"><i class="ti ti-search"></i> SEO</button>
+  <button id="tg-snap" class="edit-only" title="Snapshots"><i class="ti ti-history"></i> Snapshots</button>
+  <button id="tg-copy" title="Copy TSV to clipboard"><i class="ti ti-copy"></i> Copy TSV</button>
+  <button id="tg-dl" title="Download .tsv"><i class="ti ti-download"></i></button>
+  <button id="tg-load" title="Load / paste TSV"><i class="ti ti-upload"></i> Load</button>
+</div>
+
+<div id="site"><div class="loading"><div class="spin"></div><span>Loading editor…</span></div></div>
+
+<div class="em-back" id="em-back"><div class="em" id="em"></div></div>
+<div class="cms-toast" id="toast"></div>
+
+<script src="core.js"></script>
+<script>
+/* ===========================================================================
+ * editor.html — visual CMS over the SAME core.js used by the live site.
+ * State is the single source of truth; export is just Core.serializeTSV(state).
+ * ========================================================================= */
+
+// If you deploy the optional R2 upload Pages Function, point this at its route
+// (e.g. "/upload"). Leave "" to disable uploads (URL paste still works fully).
+const UPLOAD_ENDPOINT = "";
+
+const TSV_URL = "coach-data.tsv";
+const AUTOSAVE_KEY = "coach-cms:autosave";
+const SNAP_KEY = "coach-cms:snapshots";
+
+const mount = document.getElementById('site');
+let state = null;
+let editMode = true;
+
+/* ---------- boot ---------- */
+(async function boot() {
+  let text = '';
+  try { const res = await fetch(TSV_URL, { cache: 'no-store' }); if (res.ok) text = await res.text(); } catch (e) {}
+  if (!text || text.indexOf('#config') === -1) {
+    // file:// or missing — start from autosave if present, else prompt to paste
+    const auto = localStorage.getItem(AUTOSAVE_KEY);
+    if (auto && auto.indexOf('#config') !== -1) { text = auto; toast('Loaded your last autosave'); }
+  }
+  if (text && text.indexOf('#config') !== -1) {
+    state = Core.ensureSchema(Core.parseTSV(text));
+    draw();
+  } else {
+    mount.innerHTML = '<div class="loading"><div><strong>No TSV loaded.</strong><br><span style="color:#64748b">Click “Load” to paste your coach-data.tsv.</span></div></div>';
+    openLoad();
+  }
+})();
+
+/* ---------- draw ---------- */
+function draw() {
+  document.body.classList.toggle('previewing', !editMode);
+  document.getElementById('tg-label').textContent = editMode ? 'Exit Edit Mode' : 'Edit';
+  document.getElementById('tg-mode').querySelector('i').className = editMode ? 'ti ti-eye' : 'ti ti-pencil';
+  if (editMode) {
+    Core.render(state, mount, {
+      editable: true,
+      onChange: onChange,
+      onEditImage: onEditImage,
+      onEditHtml: onEditHtml,
+      onEditIcon: onEditIcon,
+      onEditNav: onEditNav,
+      onEditSocials: onEditSocials
+    });
+  } else {
+    Core.render(state, mount, { editable: false });
+  }
+  Core.applyHead(state);
+}
+
+let saveT = null;
+function onChange() {
+  // autosave (debounced) — never scrapes DOM; serializes state
+  clearTimeout(saveT);
+  saveT = setTimeout(() => { try { localStorage.setItem(AUTOSAVE_KEY, Core.serializeTSV(state)); } catch (e) {} }, 400);
+}
+
+/* ===========================================================================
+ * config/meta write helpers
+ * ========================================================================= */
+function setKV(sheet, key, val) {
+  let idx = Core.kvIdx(state, sheet, key);
+  if (idx < 0) { Core.getSheet(state, sheet).rows.push({ key: key, value: val }); }
+  else { Core.setCell(state, sheet, idx, 'value', val); }
+}
+function getKV(sheet, key) { return Core.kvVal(state, sheet, key); }
+
+/* ===========================================================================
+ * IMAGE MODAL
+ * ========================================================================= */
+function onEditImage(req, done) {
+  const url = Core.getCell(state, req.urlRef.sheet, req.urlRef.row, req.urlRef.key);
+  const altEditable = !!req.altReal;
+  const ctx = {};
+  if (req.role === 'testimonial') ctx.author = Core.getCell(state, req.urlRef.sheet, req.urlRef.row, 'client_name');
+  if (req.role === 'blog') ctx.title = Core.getCell(state, req.urlRef.sheet, req.urlRef.row, 'title');
+  const curAlt = Core.getCell(state, req.altRef.sheet, req.altRef.row, req.altRef.key);
+  const suggestion = Core.suggestAlt(state, req.role || '', ctx);
+  // editable alt: keep current or fall back to suggestion; derived alt: show what ships
+  const altVal = altEditable ? (curAlt || suggestion) : suggestion;
+
+  openModal({
+    title: 'Edit image',
+    body:
+      '<img class="imgprev" id="im-prev" src="' + Core.esc(Core.uimg(url, 800)) + '" alt="" onerror="this.style.opacity=.3">' +
+      fld('Photo URL', '<input type="url" id="im-url" value="' + Core.esc(url) + '" placeholder="https://…">') +
+      fld('Alt text' + (altEditable ? '' : ' (auto-generated)'),
+        '<input type="text" id="im-alt" value="' + Core.esc(altVal) + '"' + (altEditable ? '' : ' disabled') + '>') +
+      (altEditable ? '<div class="hint">Pre-filled suggestion: “' + Core.esc(suggestion) + '”. Editable; never left empty.</div>'
+        : '<div class="hint">This image’s alt is generated from the card (no alt cell in this sheet).</div>') +
+      '<div class="grp"><div class="row"><input type="file" id="im-file" accept="image/*"><button class="btn" id="im-upload" type="button"><i class="ti ti-cloud-upload"></i> Add file</button></div>' +
+      '<div class="hint">' + (UPLOAD_ENDPOINT ? 'Uploads to your configured endpoint, then fills the URL.' : 'Upload endpoint not set — paste a URL above. (Configure UPLOAD_ENDPOINT in editor.html.)') + '</div></div>',
+    onSave: () => {
+      const u = document.getElementById('im-url').value.trim();
+      Core.setCell(state, req.urlRef.sheet, req.urlRef.row, req.urlRef.key, u);
+      if (altEditable) {
+        let a = document.getElementById('im-alt').value.trim() || suggestion;
+        Core.setCell(state, req.altRef.sheet, req.altRef.row, req.altRef.key, a);
+      }
+      closeModal(); done();
+    }
+  });
+  // live preview + upload wiring
+  const urlInput = document.getElementById('im-url');
+  urlInput.addEventListener('input', () => { document.getElementById('im-prev').src = urlInput.value; });
+  document.getElementById('im-upload').addEventListener('click', async () => {
+    const f = document.getElementById('im-file').files[0];
+    if (!f) { toast('Choose a file first'); return; }
+    if (!UPLOAD_ENDPOINT) { toast('Upload endpoint not configured'); return; }
+    try {
+      toast('Uploading…');
+      const fd = new FormData(); fd.append('file', f);
+      const res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      urlInput.value = j.url; document.getElementById('im-prev').src = j.url; toast('Uploaded');
+    } catch (e) { toast('Upload failed: ' + e.message); }
+  });
+}
+
+/* ===========================================================================
+ * HTML CELL MODAL  (keeps the cell single-line on save)
+ * ========================================================================= */
+function onEditHtml(ref, done) {
+  const cur = Core.getCell(state, ref.sheet, ref.row, ref.key);
+  openModal({
+    title: 'Edit HTML — ' + ref.sheet + '.' + ref.key, wide: true,
+    body:
+      fld('HTML (inline tags like &lt;p&gt; &lt;h2&gt; &lt;ul&gt; &lt;blockquote&gt;)',
+        '<textarea id="ht-src" spellcheck="false">' + Core.esc(cur) + '</textarea>') +
+      '<div class="hint">Saved as a single line (newlines collapse to spaces) so the TSV stays valid.</div>' +
+      '<div class="grp"><h4>Live preview</h4><div id="ht-prev" class="cms-html">' + cur + '</div></div>',
+    onSave: () => {
+      const v = document.getElementById('ht-src').value.replace(/\r?\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      Core.setCell(state, ref.sheet, ref.row, ref.key, v); closeModal(); done();
+    }
+  });
+  const src = document.getElementById('ht-src');
+  src.addEventListener('input', () => { document.getElementById('ht-prev').innerHTML = src.value; });
+}
+
+/* ===========================================================================
+ * ICON MODAL  (Tabler name, inline SVG, or URL)
+ * ========================================================================= */
+function onEditIcon(ref, done) {
+  const cur = Core.getCell(state, ref.sheet, ref.row, ref.key);
+  const common = ['sparkles', 'heart', 'moon-stars', 'star', 'flame', 'leaf', 'sun', 'bolt', 'target-arrow', 'trophy', 'rocket', 'briefcase', 'trending-up', 'compass', 'diamond'];
+  openModal({
+    title: 'Edit icon',
+    body:
+      '<div class="iconprev" id="ic-prev"></div>' +
+      fld('Tabler icon name, inline &lt;svg&gt;…&lt;/svg&gt;, or image URL',
+        '<input type="text" id="ic-val" value="' + Core.esc(cur) + '" placeholder="sparkles">') +
+      '<div class="hint">Quick pick: ' + common.map(n => '<a href="#" class="ic-pick" data-n="' + n + '" style="color:#1D9E75;margin-right:8px;white-space:nowrap">' + n + '</a>').join('') + '</div>' +
+      '<div class="hint">Browse names at tabler.io/icons. Inline SVG and SVG/PNG URLs also work.</div>',
+    onSave: () => { Core.setCell(state, ref.sheet, ref.row, ref.key, document.getElementById('ic-val').value.trim()); closeModal(); done(); }
+  });
+  const val = document.getElementById('ic-val'), prev = document.getElementById('ic-prev');
+  const refresh = () => { prev.innerHTML = iconPreview(val.value); };
+  val.addEventListener('input', refresh); refresh();
+  document.querySelectorAll('.ic-pick').forEach(a => a.addEventListener('click', (e) => { e.preventDefault(); val.value = a.dataset.n; refresh(); }));
+}
+function iconPreview(v) {
+  v = (v || '').trim();
+  if (/^<svg[\s>]/i.test(v)) return v;
+  if (/^(https?:|data:)/i.test(v)) return '<img src="' + Core.esc(v) + '" style="width:2rem;height:2rem" alt="">';
+  return '<i class="ti ti-' + Core.esc(v || 'point') + '"></i>';
+}
+
+/* ===========================================================================
+ * NAV MODAL  (edit labels/anchors, add/remove links)
+ * ========================================================================= */
+function onEditNav(done) {
+  const rows = Core.rowsOf(state, 'nav');
+  const rowHtml = (label, anchor) =>
+    '<div class="navrow">' +
+    '<input type="text" class="nav-label" value="' + Core.esc(label) + '" placeholder="Label">' +
+    '<input type="text" class="nav-anchor" value="' + Core.esc(anchor) + '" placeholder="#anchor">' +
+    '<button type="button" class="btn danger nav-del" title="Remove">&times;</button></div>';
+  openModal({
+    title: 'Edit navigation', wide: true,
+    body: '<div id="nav-rows">' + rows.map(r => rowHtml(r.label || '', r.anchor || '')).join('') + '</div>' +
+      '<button type="button" class="btn" id="nav-add"><i class="ti ti-plus"></i> Add link</button>' +
+      '<div class="hint">Order here is the order on the site. Anchors usually look like <code>#about</code>.</div>',
+    onSave: () => {
+      const newRows = [];
+      document.querySelectorAll('#nav-rows .navrow').forEach(div => {
+        const label = div.querySelector('.nav-label').value.trim();
+        const anchor = div.querySelector('.nav-anchor').value.trim();
+        if (label || anchor) newRows.push({ label: label, anchor: anchor });
+      });
+      Core.getSheet(state, 'nav').rows = newRows;
+      Core.getSheet(state, 'nav').headers = ['label', 'anchor'];
+      closeModal(); done();
+    }
+  });
+  const wireDel = () => document.querySelectorAll('.nav-del').forEach(b => b.onclick = () => b.closest('.navrow').remove());
+  document.getElementById('nav-add').addEventListener('click', () => {
+    const wrap = document.getElementById('nav-rows');
+    const d = document.createElement('div');
+    d.innerHTML = rowHtml('', '#'); wrap.appendChild(d.firstChild); wireDel();
+  });
+  wireDel();
+}
+
+/* ===========================================================================
+ * SOCIAL LINKS MODAL  (add by filling a URL, remove by clearing it)
+ * ========================================================================= */
+const SOCIALS = [['linkedin', 'LinkedIn'], ['twitter', 'X / Twitter'], ['instagram', 'Instagram'], ['facebook', 'Facebook']];
+function onEditSocials(done) {
+  openModal({
+    title: 'Social links', wide: false,
+    body: SOCIALS.map(([k, label]) => fld(label + ' URL', '<input type="url" data-soc="' + k + '" value="' + Core.esc(getKV('config', k)) + '" placeholder="https://…">')).join('') +
+      '<div class="hint">A platform’s icon appears on the site only when its URL is filled in — clear a field to remove that icon.</div>',
+    onSave: () => {
+      document.querySelectorAll('[data-soc]').forEach(el => setKV('config', el.getAttribute('data-soc'), el.value.trim()));
+      closeModal(); done();
+    }
+  });
+}
+
+/* ===========================================================================
+ * SEO MODAL
+ * ========================================================================= */
+const SEO_FIELDS = [
+  ['General', [
+    ['meta_title', 'Title', 'text'],
+    ['meta_description', 'Meta description', 'area'],
+    ['meta_keywords', 'Keywords', 'text'],
+    ['site_domain', 'Canonical / site URL', 'url'],
+    ['favicon', 'Favicon URL', 'url'],
+    ['robots', 'Robots', 'robots'],
+    ['theme_color', 'Theme colour (hex)', 'text'],
+  ]],
+  ['Open Graph', [
+    ['og_type', 'og:type', 'text'],
+    ['og_title', 'og:title (blank = title)', 'text'],
+    ['og_description', 'og:description (blank = meta desc)', 'area'],
+    ['og_image', 'og:image URL', 'url'],
+    ['og_image_alt', 'og:image:alt', 'text'],
+    ['og_site_name', 'og:site_name (blank = name)', 'text'],
+  ]],
+  ['Twitter', [
+    ['twitter_card', 'Card type', 'text'],
+    ['twitter_site', 'Site @handle', 'text'],
+    ['twitter_image', 'Image URL (blank = og:image)', 'url'],
+  ]],
+  ['Structured data (JSON-LD)', [
+    ['schema_type', 'Schema @type (Person/Organization…)', 'text'],
+    ['coach_name', 'Name', 'text'],
+    ['coach_title', 'Job title', 'text'],
+    ['schema_logo', 'Logo URL (blank = og:image)', 'url'],
+    ['schema_telephone', 'Telephone (blank = phone)', 'text'],
+    ['schema_address', 'Address', 'text'],
+    ['aggregate_rating', 'Aggregate rating (blank = avg of reviews)', 'text'],
+    ['linkedin', 'sameAs · LinkedIn', 'url'],
+    ['twitter', 'sameAs · X/Twitter', 'url'],
+    ['instagram', 'sameAs · Instagram', 'url'],
+    ['facebook', 'sameAs · Facebook', 'url'],
+  ]],
+];
+function openSeo() {
+  const groups = SEO_FIELDS.map(([title, fields]) =>
+    '<div class="grp"><h4>' + title + '</h4>' + fields.map(([key, label, type]) => {
+      const v = getKV('config', key);
+      if (type === 'area') return fld(label, '<textarea data-seo="' + key + '" style="min-height:70px;font-family:Inter;font-size:.9rem">' + Core.esc(v) + '</textarea>');
+      if (type === 'robots') return fld(label,
+        '<select data-seo="' + key + '"><option value="index, follow"' + (v === 'index, follow' || !v ? ' selected' : '') + '>index, follow</option>' +
+        '<option value="noindex, nofollow"' + (v === 'noindex, nofollow' ? ' selected' : '') + '>noindex, nofollow</option></select>');
+      return fld(label, '<input type="' + (type === 'url' ? 'url' : 'text') + '" data-seo="' + key + '" value="' + Core.esc(v) + '">');
+    }).join('') + '</div>').join('');
+  openModal({
+    title: 'SEO & structured data', wide: true, body: groups,
+    onSave: () => {
+      document.querySelectorAll('[data-seo]').forEach(el => setKV('config', el.getAttribute('data-seo'), el.value));
+      Core.applyHead(state); closeModal(); draw(); toast('SEO saved');
+    }
+  });
+}
+
+/* ===========================================================================
+ * EXPORT / IMPORT
+ * ========================================================================= */
+function copyTSV() {
+  const tsv = Core.serializeTSV(state);
+  navigator.clipboard.writeText(tsv).then(() => toast('TSV copied to clipboard'), () => { downloadTSV(); });
+}
+function downloadTSV() {
+  const blob = new Blob([Core.serializeTSV(state)], { type: 'text/tab-separated-values' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'coach-data.tsv';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('Downloaded coach-data.tsv');
+}
+function openLoad() {
+  openModal({
+    title: 'Load / paste TSV', wide: true,
+    body:
+      '<div class="row"><input type="file" id="ld-file" accept=".tsv,text/tab-separated-values"></div>' +
+      fld('…or paste TSV here', '<textarea id="ld-src" placeholder="#config&#10;key\tvalue&#10;…"></textarea>') +
+      '<div class="hint">Replaces the current state and re-renders. Use this to revert to any saved version.</div>',
+    saveLabel: 'Load',
+    onSave: () => {
+      const t = document.getElementById('ld-src').value;
+      if (!t || t.indexOf('#config') === -1) { toast('That doesn’t look like a coach TSV'); return; }
+      state = Core.ensureSchema(Core.parseTSV(t)); closeModal(); editMode = true; draw(); toast('TSV loaded');
+    }
+  });
+  document.getElementById('ld-file').addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => { document.getElementById('ld-src').value = r.result; }; r.readAsText(f);
+  });
+}
+
+/* ===========================================================================
+ * SNAPSHOTS (localStorage)
+ * ========================================================================= */
+function snaps() { try { return JSON.parse(localStorage.getItem(SNAP_KEY) || '[]'); } catch (e) { return []; } }
+function saveSnaps(a) { localStorage.setItem(SNAP_KEY, JSON.stringify(a)); }
+function openSnaps() {
+  const items = snaps();
+  const listHtml = items.length ? items.map((s, i) =>
+    '<div class="snap"><div class="meta">' + Core.esc(s.name) + '<small>' + new Date(s.ts).toLocaleString() + '</small></div>' +
+    '<div class="row"><button class="btn" data-snap-load="' + i + '">Restore</button><button class="btn danger" data-snap-del="' + i + '">Delete</button></div></div>'
+  ).join('') : '<div class="hint">No snapshots yet.</div>';
+  openModal({
+    title: 'Snapshots',
+    body:
+      '<div class="row"><input type="text" id="sn-name" placeholder="Snapshot name (e.g. before-rewrite)"><button class="btn primary" id="sn-save" type="button">Save current</button></div>' +
+      '<div style="display:grid;gap:8px">' + listHtml + '</div>' +
+      '<div class="hint">Stored in this browser’s localStorage. For durable versions, use Copy/Download TSV.</div>',
+    noSave: true
+  });
+  document.getElementById('sn-save').addEventListener('click', () => {
+    const name = document.getElementById('sn-name').value.trim() || ('snapshot ' + (snaps().length + 1));
+    const a = snaps(); a.unshift({ name: name, ts: Date.now(), tsv: Core.serializeTSV(state) }); saveSnaps(a); openSnaps(); toast('Snapshot saved');
+  });
+  document.querySelectorAll('[data-snap-load]').forEach(b => b.addEventListener('click', () => {
+    const s = snaps()[+b.getAttribute('data-snap-load')]; if (!s) return;
+    state = Core.ensureSchema(Core.parseTSV(s.tsv)); closeModal(); editMode = true; draw(); toast('Restored “' + s.name + '”');
+  }));
+  document.querySelectorAll('[data-snap-del]').forEach(b => b.addEventListener('click', () => {
+    const a = snaps(); a.splice(+b.getAttribute('data-snap-del'), 1); saveSnaps(a); openSnaps();
+  }));
+}
+
+/* ===========================================================================
+ * MODAL FRAMEWORK + helpers
+ * ========================================================================= */
+function fld(label, control) { return '<label class="fld"><span>' + label + '</span>' + control + '</label>'; }
+function openModal(o) {
+  const back = document.getElementById('em-back'), em = document.getElementById('em');
+  em.className = 'em' + (o.wide ? ' wide' : '');
+  em.innerHTML =
+    '<div class="em-head"><h3>' + Core.esc(o.title) + '</h3><button class="em-x" id="em-x">&times;</button></div>' +
+    '<div class="em-body">' + o.body + '</div>' +
+    (o.noSave ? '' : '<div class="em-foot"><button class="btn" id="em-cancel">Cancel</button><button class="btn primary" id="em-save">' + (o.saveLabel || 'Save') + '</button></div>');
+  back.classList.add('open');
+  document.getElementById('em-x').onclick = closeModal;
+  if (!o.noSave) { document.getElementById('em-cancel').onclick = closeModal; document.getElementById('em-save').onclick = o.onSave; }
+  back.onclick = (e) => { if (e.target === back) closeModal(); };
+}
+function closeModal() { document.getElementById('em-back').classList.remove('open'); }
+
+let toastT = null;
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1900);
+}
+
+/* ---------- toolbar wiring ---------- */
+document.getElementById('tg-mode').onclick = () => { editMode = !editMode; draw(); };
+document.getElementById('tg-seo').onclick = openSeo;
+document.getElementById('tg-snap').onclick = openSnaps;
+document.getElementById('tg-copy').onclick = copyTSV;
+document.getElementById('tg-dl').onclick = downloadTSV;
+document.getElementById('tg-load').onclick = openLoad;
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "coach-site-cms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TSV-driven coaching site: hardened renderer + visual editor sharing one core.js. No framework, no dependencies.",
+  "scripts": {
+    "serve": "node scripts/serve.js",
+    "build": "node build.js",
+    "test": "node test/roundtrip.js && node test/compat.js"
+  },
+  "license": "MIT"
+}
