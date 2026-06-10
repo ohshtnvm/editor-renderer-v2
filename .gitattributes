@@ -1,0 +1,9 @@
+# Never apply EOL conversion to binary assets (PDFs/images) — it corrupts them.
+*.pdf binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.gif binary
+*.avif binary
+*.ico binary
