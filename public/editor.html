@@ -269,11 +269,25 @@ function onEditNav(done) {
     '<input type="text" class="nav-label" value="' + Core.esc(label) + '" placeholder="Label">' +
     '<input type="text" class="nav-anchor" value="' + Core.esc(anchor) + '" placeholder="#anchor">' +
     '<button type="button" class="btn danger nav-del" title="Remove">&times;</button></div>';
+  // Folder-driven sections (Case Studies / Shop / Downloads) are auto-added to
+  // the nav when they have items. They're not #nav rows, so show them here as
+  // label-only (the anchor is fixed); the label is stored as meta `{key}_nav`.
+  const autoDefs = (Core.CONTENT_DEFS || []);
+  const autoRows = autoDefs.map((d) => {
+    const has = !!(CONTENT && Array.isArray(CONTENT[d.key]) && CONTENT[d.key].length);
+    const label = Core.kvVal(state, 'meta', d.key + '_nav') || d.label;
+    return '<div class="navrow">' +
+      '<input type="text" class="nav-auto-label" data-auto="' + d.key + '" value="' + Core.esc(label) + '">' +
+      '<code class="cms-chip" style="white-space:nowrap">#' + d.key + '</code>' +
+      '<span class="hint" style="white-space:nowrap">' + (has ? 'shown' : 'hidden (no items)') + '</span></div>';
+  }).join('');
   openModal({
     title: 'Edit navigation', wide: true,
     body: '<div id="nav-rows">' + rows.map(r => rowHtml(r.label || '', r.anchor || '')).join('') + '</div>' +
       '<button type="button" class="btn" id="nav-add"><i class="ti ti-plus"></i> Add link</button>' +
-      '<div class="hint">Order here is the order on the site. Anchors usually look like <code>#about</code>.</div>',
+      '<div class="hint">Order here is the order on the site. Anchors usually look like <code>#about</code>.</div>' +
+      (autoRows ? '<div class="grp"><h4>Auto sections</h4>' + autoRows +
+        '<div class="hint">Case Studies / Shop / Downloads appear automatically after their nav links above, only when the section has items. You can rename them here.</div></div>' : ''),
     onSave: () => {
       const newRows = [];
       document.querySelectorAll('#nav-rows .navrow').forEach(div => {
@@ -283,6 +297,7 @@ function onEditNav(done) {
       });
       Core.getSheet(state, 'nav').rows = newRows;
       Core.getSheet(state, 'nav').headers = ['label', 'anchor'];
+      document.querySelectorAll('.nav-auto-label').forEach((el) => setKV('meta', el.getAttribute('data-auto') + '_nav', el.value.trim()));
       closeModal(); done();
     }
   });
